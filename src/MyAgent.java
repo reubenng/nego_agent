@@ -141,7 +141,7 @@ public class MyAgent extends AbstractNegotiationParty {
         		System.out.println("Accept offer");
         		return new Accept(this.getPartyId(), lastReceivedOffer);
         	} else {
-            	// do strategy
+            	// otherwise do strategy counter offer
         		System.out.println("Make offer");
                 myLastOffer = generateRandomBid();
                 return new Offer(this.getPartyId(), myLastOffer);
