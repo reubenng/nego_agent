@@ -22,7 +22,7 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 
 ## Daniel
 
-1) Create uniform random vector for selecting value of each issue.
+1) Create uniform random vector for selecting value of each issue. COMPLETED
 2) Implement the roulette selection method.
 3) Put them into a bid using string mapping matrix.
 4) Make counter offer, u(bid_offer) <= u(last_offer): accept, otherwise counter-offer(bid_offer).
