@@ -17,7 +17,7 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 ## Reuben
 
 1) Getting profile variables and storing them into a 2D matrix, string 2D matrix for mapping.
-2) Make them into probabilities.
+2) Make them into probabilities (using Linear Function).
 3) 1st round flag.
 
 ## Daniel
