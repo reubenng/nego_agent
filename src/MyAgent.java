@@ -87,14 +87,15 @@ public class MyAgent extends AbstractNegotiationParty {
 //            System.out.println("smallestProb: " + smallestProb);
             
             j = 0;
-            Float[] probArray = new Float[issueDiscrete.getValues().size()]; // array of linear probability
+            Float[] probArray = new Float[issueDiscrete.getValues().size()]; // array of not-linear probability
             // create array of linear probability
             for (ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
             	if (j == 0){
             		probArray[j] = smallestProb * valueArray[j];
 //                    System.out.println("probArray " + j + ": "+ probArray[j]);
             	} else {
-            		probArray[j] = smallestProb * valueArray[j] + probArray[j-1];
+            		probArray[j] = smallestProb * valueArray[j];
+//            		probArray[j] = smallestProb * valueArray[j] + probArray[j-1];
 //                    System.out.println("probArray " + j + ": "+ probArray[j]);
             	}
             	j++;
