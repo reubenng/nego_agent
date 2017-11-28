@@ -1,7 +1,10 @@
 /bin/
+/roullete/
 
 .project
 
 .classpath
 
 /genius/log/
+
+.DS_Store
