@@ -19,8 +19,7 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 1) Getting profile variables and storing them into a 2D matrix, string 2D matrix for mapping. [COMPLETED]
 2) Make them into probabilities (using Linear Function). [COMPLETED]
 3) 1st round flag. [COMPLETED]
-4) Create squared and normlized matrix
-5) Write the code in the chooseAction function and pass it to daniel (getBidFromRoullete).
+4) Create squared normlised probability matrix and pass it to daniel (getBidFromRoulette). [COMPLETED]
 
 ## Daniel
 

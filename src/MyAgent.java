@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * MyAgent returns the bid that maximizes its own utility if it is the first to make offer.
+ * MyAgent returns the bid that maximises its own utility if it is the first to make offer.
  * In the second half, it offers a random bid. It only accepts the bid on the table in this phase,
  * if the utility of the bid is higher than Example Agent's last bid.
  */
@@ -32,7 +32,8 @@ public class MyAgent extends AbstractNegotiationParty {
     private Bid lastReceivedOffer = null; // offer on the table
     private Bid myLastOffer = null;
     
-    public Float[][] probMatrix;
+    public Float[][] probMatrix; // probability matrix
+    public Float[][] prob2Matrix; // normalised squared probability matrix
     public List<Issue> issues;
     public NegotiationInfo info_2;    
     
@@ -52,7 +53,8 @@ public class MyAgent extends AbstractNegotiationParty {
         String[][] valueNameMatrix = new String[issues.size()][]; // matrix for storing value names
         int[][] valueMatrix = new int[issues.size()][]; // matrix for storing value evaluations
 
-        probMatrix = new Float[issues.size()][]; // matrix for storing value evaluations
+        probMatrix = new Float[issues.size()][]; // matrix for probability
+        prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
         
         int i = 0;
         
@@ -96,20 +98,33 @@ public class MyAgent extends AbstractNegotiationParty {
 //            System.out.println("smallestProb: " + smallestProb);
             
             j = 0;
-            Float[] probArray = new Float[issueDiscrete.getValues().size()]; // array of not-linear probability
-            // create array of linear probability
-            for (ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
+            int power = 2; // power for probability
+            Float[] probArray = new Float[issueDiscrete.getValues().size()]; // array of probability
+            Float[] prob2Array = new Float[issueDiscrete.getValues().size()]; // squared array then normalised array
+            // create array of cumulative probability
+            for (@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
             	if (j == 0){
             		probArray[j] = smallestProb * valueArray[j];
+            		prob2Array[j] = (float) Math.pow(probArray[j], power); // find squared array
 //                    System.out.println("probArray " + j + ": "+ probArray[j]);
             	} else {
             		probArray[j] = smallestProb * valueArray[j];
-//            		probArray[j] = smallestProb * valueArray[j] + probArray[j-1];
+//            		probArray[j] = smallestProb * valueArray[j] + probArray[j-1]; // not used, for cumulative probability
+            		prob2Array[j] = (float) Math.pow(probArray[j], power);
 //                    System.out.println("probArray " + j + ": "+ probArray[j]);
             	}
             	j++;
             }
+            Float sqSums = (float) 0;
+            for (Float a : prob2Array) // find sum of values in an issue
+            	sqSums += a;
+            j = 0;
+            for (@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) { // normalised probability
+            	prob2Array[j] = prob2Array[j]/sqSums;
+            	j++;
+            }
             probMatrix[i] = probArray;
+            prob2Matrix[i] = prob2Array;
             i++;
         }
         System.out.println("Issues: " + issues);
@@ -117,7 +132,7 @@ public class MyAgent extends AbstractNegotiationParty {
         System.out.println("All value names: " + Arrays.deepToString(valueNameMatrix));
         System.out.println("All values: " + Arrays.deepToString(valueMatrix));
         System.out.println("Probability matrix: " + Arrays.deepToString(probMatrix));
-
+        System.out.println("Norm Sq Prob matrix: " + Arrays.deepToString(prob2Matrix));
     }
 
     /**
@@ -135,7 +150,7 @@ public class MyAgent extends AbstractNegotiationParty {
         // According to Stacked Alternating Offers Protocol list includes
         // Accept, Offer and EndNegotiation actions only.
         double time = getTimeLine().getTime(); // Gets the time, running from t = 0 (start) to t = 1 (deadline).
-                                               // The time is normalized, so agents need not be
+                                               // The time is normalised, so agents need not be
                                                // concerned with the actual internal clock.
 
         // If first agent, no offer on the table yet, do max utility bid
@@ -153,7 +168,7 @@ public class MyAgent extends AbstractNegotiationParty {
         	} else {
             	// otherwise do strategy counter offer
         		System.out.println("Make offer");
-                myLastOffer = getBidFromRoulette(probMatrix);
+                myLastOffer = getBidFromRoulette(probMatrix, prob2Matrix, time);
 //                myLastOffer = generateRandomBid();
                 return new Offer(this.getPartyId(), myLastOffer);
         	}
@@ -175,8 +190,6 @@ public class MyAgent extends AbstractNegotiationParty {
             // storing last received offer
             lastReceivedOffer = offer.getBid();
         }
-        
-        
     }
 
     /**
@@ -203,7 +216,7 @@ public class MyAgent extends AbstractNegotiationParty {
         int NumberOfIssues = probMatrix2.length;
 //        int NumberOfValues = probMatrix2[0].length;
 
-        String[] picked_values = new String[NumberOfIssues];
+//        String[] picked_values = new String[NumberOfIssues];
         Value[] picked_values_index = new Value[NumberOfIssues];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
