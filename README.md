@@ -7,7 +7,7 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 
 ## Milestones
 
-1) 27 Monday Evening -> Basic Model
+1) 27 Monday Evening -> Basic Model [COMPLETED]
 2) 29 Wednesday Evening -> Time + Classification
 3) 3 Sunday Evening -> Use classification knowledge to adjust weights and do actions
 4) 5 Tuesday Morning -> Hand in
