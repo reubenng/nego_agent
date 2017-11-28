@@ -5,6 +5,7 @@ import negotiator.actions.Action;
 import negotiator.actions.Offer;
 import negotiator.issue.Issue;
 import negotiator.issue.IssueDiscrete;
+import negotiator.issue.Value;
 import negotiator.issue.ValueDiscrete;
 import negotiator.parties.AbstractNegotiationParty;
 import negotiator.parties.NegotiationInfo;
@@ -12,7 +13,9 @@ import negotiator.utility.AbstractUtilitySpace;
 import negotiator.utility.AdditiveUtilitySpace;
 import negotiator.utility.EvaluatorDiscrete;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -28,22 +31,28 @@ public class MyAgent extends AbstractNegotiationParty {
     private int round = 0; // number of round
     private Bid lastReceivedOffer = null; // offer on the table
     private Bid myLastOffer = null;
-        
+    
+    public Float[][] probMatrix;
+    public List<Issue> issues;
+    public NegotiationInfo info_2;    
+    
     @Override
     public void init(NegotiationInfo info) {
         super.init(info);
+        
+        info_2 = info;
         
         AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
 
         AdditiveUtilitySpace additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
 
-        List<Issue> issues = additiveUtilitySpace.getDomain().getIssues(); // list of issues
+        issues = additiveUtilitySpace.getDomain().getIssues(); // list of issues
         Double[] weights = new Double[issues.size()];
         
         String[][] valueNameMatrix = new String[issues.size()][]; // matrix for storing value names
         int[][] valueMatrix = new int[issues.size()][]; // matrix for storing value evaluations
 
-        Float[][] probMatrix = new Float[issues.size()][]; // matrix for storing value evaluations
+        probMatrix = new Float[issues.size()][]; // matrix for storing value evaluations
         
         int i = 0;
         
@@ -144,7 +153,8 @@ public class MyAgent extends AbstractNegotiationParty {
         	} else {
             	// otherwise do strategy counter offer
         		System.out.println("Make offer");
-                myLastOffer = generateRandomBid();
+                myLastOffer = getBidFromRoulette(probMatrix);
+//                myLastOffer = generateRandomBid();
                 return new Offer(this.getPartyId(), myLastOffer);
         	}
         }
@@ -165,6 +175,8 @@ public class MyAgent extends AbstractNegotiationParty {
             // storing last received offer
             lastReceivedOffer = offer.getBid();
         }
+        
+        
     }
 
     /**
@@ -186,13 +198,13 @@ public class MyAgent extends AbstractNegotiationParty {
     }
 
     // roulette function
-    private Bid getBidFromRoullete(float[][] profile) {
+    public Bid getBidFromRoulette(Float[][] probMatrix2) {
         // 1) get number of issues (rows) from the profile variable
-        int NumberOfIssues = profile.length;
-        int NumberOfValues = profile[0].length;
+        int NumberOfIssues = probMatrix2.length;
+//        int NumberOfValues = probMatrix2[0].length;
 
         String[] picked_values = new String[NumberOfIssues];
-        int[] picked_values_index = new int[NumberOfIssues];
+        Value[] picked_values_index = new Value[NumberOfIssues];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
         double[] randomArray = new double[NumberOfIssues];
@@ -200,39 +212,42 @@ public class MyAgent extends AbstractNegotiationParty {
         
         for(int issue_n = 0; issue_n < NumberOfIssues; issue_n++) {
             randomArray[issue_n] = Math.random();
-            System.out.println(randomArray[issue_n]);
+//            System.out.println(randomArray[issue_n]);
         }
 
-        // 3) apply roullete selection
-        for(int issue = 0; issue < NumberOfIssues; issue++) {
+        int i = 0;
+        // 3) apply roulette selection
+        for(Issue issue : issues) {
 
             // clear offset
-            offset = profile[issue][0];
+            offset = probMatrix2[i][0];
 
-            for(int value = 0; value < NumberOfValues; value++) {
+            int j = 0;
+
+            IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
+            for(ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
                 
                 // if it falls in the pie section store the value from the profile map
-                if (randomArray[issue] < offset) {
-                    picked_values[issue] = profile_map[issue][value];
-                    picked_values_index[issue] = value;
+                if (randomArray[i] < offset) {
+//                    picked_values[i] = probMatrix2[i][j];
+                    picked_values_index[i] = valueDiscrete;
                     break;
 
                 // else increment offset by the appropriate value
                 } else {
-                    offset = offset + profile[issue][value + 1];
+                    offset = offset + probMatrix2[i][j + 1];
                 }
+                j++;
             }
+            i++;
         }
 
         // 3.1) Debug results
         for(int issue = 0; issue < NumberOfIssues; issue++) {
-            // System.out.println("Picked value: " + picked_values[issue] + "Index: " + picked_values_index[issue]);
+//             System.out.println("Index: " + picked_values_index[issue]);
         }
         
         // 4) Generate new bid
-        AbstractUtilitySpace utilitySpace = info.getUtilitySpace();
-        AdditiveUtilitySpace additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
-        List<Issue> issues = additiveUtilitySpace.getDomain().getIssues();
         
         HashMap<Integer, Value> issueMap = new HashMap<>();
         int issue_n = 0;
@@ -247,7 +262,8 @@ public class MyAgent extends AbstractNegotiationParty {
             issue_n++;
         }
         
-        Bid newBid = new Bid(info.getUtilitySpace().getDomain(), issueMap);
+        Bid newBid = new Bid(info_2.getUtilitySpace().getDomain(), issueMap);
+        System.out.println(newBid);
 
         return newBid;
     }
