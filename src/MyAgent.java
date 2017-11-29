@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.IntStream;
 
 /**
  * MyAgent returns the bid that maximises its own utility if it is the first to make offer.
@@ -35,7 +34,10 @@ public class MyAgent extends AbstractNegotiationParty {
     public Float[][] probMatrix; // probability matrix
     public Float[][] prob2Matrix; // normalised squared probability matrix
     public List<Issue> issues;
-    public NegotiationInfo info_2;    
+    public IssueDiscrete issueDiscrete;
+    public NegotiationInfo info_2;   
+    
+    public int power = 2; // power for probability
     
     @Override
     public void init(NegotiationInfo info) {
@@ -48,10 +50,10 @@ public class MyAgent extends AbstractNegotiationParty {
         AdditiveUtilitySpace additiveUtilitySpace = (AdditiveUtilitySpace) utilitySpace;
 
         issues = additiveUtilitySpace.getDomain().getIssues(); // list of issues
-        Double[] weights = new Double[issues.size()];
+        Float[] weights = new Float[issues.size()];
         
         String[][] valueNameMatrix = new String[issues.size()][]; // matrix for storing value names
-        int[][] valueMatrix = new int[issues.size()][]; // matrix for storing value evaluations
+        Float[][] valueMatrix = new Float[issues.size()][]; // matrix for storing value evaluations
 
         probMatrix = new Float[issues.size()][]; // matrix for probability
         prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
@@ -60,7 +62,7 @@ public class MyAgent extends AbstractNegotiationParty {
         
         for (Issue issue : issues) {
             int issueNumber = issue.getNumber();
-            double weight = additiveUtilitySpace.getWeight(issueNumber);
+            Float weight = (float) additiveUtilitySpace.getWeight(issueNumber);
             weights[i] = weight;
 //            System.out.println(">> " + issue.getName() + " weight: " + weight);
 
@@ -70,7 +72,7 @@ public class MyAgent extends AbstractNegotiationParty {
             
             int j = 0;
             String[] NameArray = new String[issueDiscrete.getValues().size()];
-            int[] valueArray = new int[issueDiscrete.getValues().size()];
+            Float[] valueArray = new Float[issueDiscrete.getValues().size()];
             
             for (ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
 //                System.out.println(valueDiscrete.getValue());
@@ -84,7 +86,8 @@ public class MyAgent extends AbstractNegotiationParty {
 					e.printStackTrace();
 				}
                 try {
-                	valueArray[j] = evaluatorDiscrete.getValue(valueDiscrete); // put value into array
+                	valueArray[j] = (float) evaluatorDiscrete.getValue(valueDiscrete); // put value into array
+                	valueArray[j] = (float) Math.pow(valueArray[j], 1 + 4 * weights[i]);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -93,12 +96,13 @@ public class MyAgent extends AbstractNegotiationParty {
             }
             valueNameMatrix[i] = NameArray; // put value name arrays into name matrix
             valueMatrix[i] = valueArray; // put value arrays into value matrix
-            Float valueSums = (float) IntStream.of(valueArray).sum(); // find sum of values in an issue
+            Float valueSums = (float) 0;
+            for (Float a : valueArray) // find sum of values in an issue
+            	valueSums += a;
             Float smallestProb =  1/valueSums; // find probability of the smallest unit
 //            System.out.println("smallestProb: " + smallestProb);
             
             j = 0;
-            int power = 2; // power for probability
             Float[] probArray = new Float[issueDiscrete.getValues().size()]; // array of probability
             Float[] prob2Array = new Float[issueDiscrete.getValues().size()]; // squared array then normalised array
             // create array of cumulative probability
@@ -149,10 +153,11 @@ public class MyAgent extends AbstractNegotiationParty {
     	
         // According to Stacked Alternating Offers Protocol list includes
         // Accept, Offer and EndNegotiation actions only.
-        double time = getTimeLine().getTime(); // Gets the time, running from t = 0 (start) to t = 1 (deadline).
+        Float time = (float) getTimeLine().getTime(); // Gets the time, running from t = 0 (start) to t = 1 (deadline).
                                                // The time is normalised, so agents need not be
                                                // concerned with the actual internal clock.
 
+    	System.out.println("time: "+ time);
         // If first agent, no offer on the table yet, do max utility bid
         if (lastReceivedOffer == null || !list.contains(Accept.class)){
         	System.out.println("First offer");
@@ -211,29 +216,49 @@ public class MyAgent extends AbstractNegotiationParty {
     }
 
     // roulette function
-    public Bid getBidFromRoulette(Float[][] probMatrix2) {
-        // 1) get number of issues (rows) from the profile variable
-        int NumberOfIssues = probMatrix2.length;
-//        int NumberOfValues = probMatrix2[0].length;
+    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, Float time) {
 
-//        String[] picked_values = new String[NumberOfIssues];
-        Value[] picked_values_index = new Value[NumberOfIssues];
+        // 1) get number of issues (rows) and values (columns) from the profile variable
+        int NumberOfIssues = origProbMatrix.length;
+//        int NumberOfValues = origProbMatrix[0].length;
+        Value[] picked_values_index = new Value[issues.size()];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
-        double[] randomArray = new double[NumberOfIssues];
+        Double[] randomArray = new Double[NumberOfIssues];
         double offset = 0;
         
         for(int issue_n = 0; issue_n < NumberOfIssues; issue_n++) {
             randomArray[issue_n] = Math.random();
-//            System.out.println(randomArray[issue_n]);
         }
+        
+        // 3) apply time dependent function
+        Float[][] timeBiasedProbMatrix = new Float[issues.size()][];
+        
+        float originalValue;
+        float normalizedValue;
 
         int i = 0;
-        // 3) apply roulette selection
+        for(Issue issue : issues) {
+        	int j = 0;
+            IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
+            Float[] probtArray = new Float[issueDiscrete.getValues().size()]; // array of probability * t
+            for(@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
+                originalValue = origProbMatrix[i][j];
+                normalizedValue = normProbMatrix[i][j];
+                probtArray[j] = normalizedValue;
+//                probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+                j++;
+            }
+            timeBiasedProbMatrix[i] = probtArray;
+            i++;
+        }
+        
+        // 4) apply roulette selection
+        i = 0;
         for(Issue issue : issues) {
 
             // clear offset
-            offset = probMatrix2[i][0];
+            offset = timeBiasedProbMatrix[i][0];
 
             int j = 0;
 
@@ -242,41 +267,34 @@ public class MyAgent extends AbstractNegotiationParty {
                 
                 // if it falls in the pie section store the value from the profile map
                 if (randomArray[i] < offset) {
-//                    picked_values[i] = probMatrix2[i][j];
                     picked_values_index[i] = valueDiscrete;
                     break;
 
                 // else increment offset by the appropriate value
                 } else {
-                    offset = offset + probMatrix2[i][j + 1];
+                    offset = offset + timeBiasedProbMatrix[i][j + 1];
                 }
                 j++;
             }
             i++;
         }
 
-        // 3.1) Debug results
-        for(int issue = 0; issue < NumberOfIssues; issue++) {
-//             System.out.println("Index: " + picked_values_index[issue]);
-        }
-        
-        // 4) Generate new bid
-        
+        // 5) Generate new bid with chosen values
         HashMap<Integer, Value> issueMap = new HashMap<>();
         int issue_n = 0;
         for (Issue issue : issues) {
-            // Since discrete only
             IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
             List<ValueDiscrete> discreteValues = new ArrayList<>();
             discreteValues.addAll(issueDiscrete.getValues());
-            // pick a random value
-            // Collections.shuffle(discreteValues);
             issueMap.put(issue.getNumber(), picked_values_index[issue_n]);
             issue_n++;
         }
         
         Bid newBid = new Bid(info_2.getUtilitySpace().getDomain(), issueMap);
-        System.out.println(newBid);
+
+        // Debug
+        System.out.println("Time-biased prob matrix: " + Arrays.deepToString(timeBiasedProbMatrix));
+        System.out.println("Picked index after roullete: " + Arrays.toString(picked_values_index));
 
         return newBid;
     }
