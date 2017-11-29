@@ -8,8 +8,9 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 ## Milestones
 
 1) 27 Monday Evening -> Basic Model [COMPLETED]
-2) 29 Wednesday Evening -> Time + Classification
-3) 3 Sunday Evening -> Use classification knowledge to adjust weights and do actions
+2) 29 Wednesday Evening -> Time [COMPLETED]
+3) Classification opponents into Persistant and Unpredictable.
+3) 3 Sunday Evening -> Use classification knowledge to adjust probability reduction based on time.
 4) 5 Tuesday Morning -> Hand in
 
 # Base model tasks
@@ -27,5 +28,5 @@ Building a negotiation agent for the Automated Negotiation Agent Competition (AN
 2) Implement the roulette selection method. [COMPLETED]
 3) Put them into a bid using string mapping matrix. [COMPLETED]
 4) Make counter offer, u(bid_offer) <= u(last_offer): accept, otherwise counter-offer(bid_offer). [COMPLETED]
-5) Use 2 matrices as inputs (Aold=linear, Anew=squared and normalized) and apply time-function to return new prob. matrix
-6) Make a bid with updated probabilities (A = Aold*t - Anew(t-1))
+5) Use 2 matrices as inputs (Aold=linear, Anew=squared and normalized) and apply time-function to return new prob. matrix [COMPLETED]
+6) Make a bid with updated probabilities (A = Aold*t - Anew(t-1)) [COMPLETED]
