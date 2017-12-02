@@ -12,19 +12,18 @@ import negotiator.parties.NegotiationInfo;
 import negotiator.utility.AbstractUtilitySpace;
 import negotiator.utility.AdditiveUtilitySpace;
 import negotiator.utility.EvaluatorDiscrete;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 /**
- * MyAgent returns the bid that maximises its own utility if it is the first to make offer.
+ * Agent33 returns the bid that maximises its own utility if it is the first to make offer.
  * In the second half, it offers a random bid. It only accepts the bid on the table in this phase,
  * if the utility of the bid is higher than Example Agent's last bid.
  */
 @SuppressWarnings("serial")
-public class MyAgent extends AbstractNegotiationParty {
+public class Agent33 extends AbstractNegotiationParty {
     private final String description = "Group 33 Agent";
 
     private int round = 0; // number of round
@@ -38,6 +37,10 @@ public class MyAgent extends AbstractNegotiationParty {
     public NegotiationInfo info_2;   
     
     public int power = 2; // power for probability
+
+    public ArrayList<Value> bidmatrix; // matrix for storing opponent's bids
+    public int b = 0; // bid counter
+    public int timeflag = 0;
     
     @Override
     public void init(NegotiationInfo info) {
@@ -57,7 +60,8 @@ public class MyAgent extends AbstractNegotiationParty {
 
         probMatrix = new Float[issues.size()][]; // matrix for probability
         prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
-        
+
+        bidmatrix = new ArrayList<Value>();
         int i = 0;
         
         for (Issue issue : issues) {
@@ -153,29 +157,59 @@ public class MyAgent extends AbstractNegotiationParty {
     	
         // According to Stacked Alternating Offers Protocol list includes
         // Accept, Offer and EndNegotiation actions only.
-        Float time = (float) getTimeLine().getTime(); // Gets the time, running from t = 0 (start) to t = 1 (deadline).
+    	Float time = (float) getTimeLine().getTime(); // Gets the time, running from t = 0 (start) to t = 1 (deadline).
                                                // The time is normalised, so agents need not be
                                                // concerned with the actual internal clock.
 
-    	System.out.println("time: "+ time);
+    	System.out.println("Time: "+ time);
         // If first agent, no offer on the table yet, do max utility bid
         if (lastReceivedOffer == null || !list.contains(Accept.class)){
         	System.out.println("First offer");
         	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
         } else {
-            // Accepts the bid on the table in this phase,
-            // if the utility of the bid is higher than Agent's last bid.
-        	if (lastReceivedOffer != null
-                && myLastOffer != null
-                && this.utilitySpace.getUtility(lastReceivedOffer) > this.utilitySpace.getUtility(myLastOffer)){
-        		System.out.println("Accept offer");
-        		return new Accept(this.getPartyId(), lastReceivedOffer);
+        	if (time < 0.5){ // bid collection phase
+        	    HashMap<Integer, Value> valuelist = lastReceivedOffer.getValues();
+                Value[] opvaluearray = new Value[issues.size()];
+                // turn bid into array
+                int a = 1;
+                for(@SuppressWarnings("unused") Issue issue : issues) {
+                   opvaluearray[a-1] = (Value) valuelist.get(a);
+                   System.out.print("key is: "+ a + " & Value is: ");
+                   System.out.println(valuelist.get(a));
+                   a++;
+                }
+                System.out.println("opvaluearray: " + Arrays.deepToString(opvaluearray));
+                bidmatrix.addAll(Arrays.asList(opvaluearray));
+//                valuematrix.put(b, valuelist);
+//                bidMatrix[b] = lastReceivedOffer;
+//                System.out.println("valuelist: " + valuelist);
+            	b++;
+//                System.out.println("valuematrix: " + valuematrix);
+
+            	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
+        		
         	} else {
-            	// otherwise do strategy counter offer
-        		System.out.println("Make offer");
-                myLastOffer = getBidFromRoulette(probMatrix, prob2Matrix, time);
-//                myLastOffer = generateRandomBid();
-                return new Offer(this.getPartyId(), myLastOffer);
+        		if (timeflag == 0){
+                    System.out.println("bidmatrix " + bidmatrix);
+                    System.out.println("bidmatrix 90: " + bidmatrix.get(90));
+        			timeflag = 1;
+        		}
+//                System.out.println("Finished collecting bids...");
+//            	System.out.println("bidmatrix: " + bidMatrix);
+                // Accepts the bid on the table in this phase,
+                // if the utility of the bid is higher than Agent's last bid.
+            	if (lastReceivedOffer != null
+                    && myLastOffer != null
+                    && this.utilitySpace.getUtility(lastReceivedOffer) > this.utilitySpace.getUtility(myLastOffer)){
+            		System.out.println("Accept offer");
+            		return new Accept(this.getPartyId(), lastReceivedOffer);
+            	} else {
+                	// otherwise do strategy counter offer
+            		System.out.println("Make offer");
+                    myLastOffer = getBidFromRoulette(probMatrix, prob2Matrix, time);
+//                    myLastOffer = generateRandomBid();
+                    return new Offer(this.getPartyId(), myLastOffer);
+            	}
         	}
         }
     }
@@ -245,8 +279,8 @@ public class MyAgent extends AbstractNegotiationParty {
             for(@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
                 originalValue = origProbMatrix[i][j];
                 normalizedValue = normProbMatrix[i][j];
-                probtArray[j] = normalizedValue;
-//                probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+//                probtArray[j] = normalizedValue;
+                probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
                 j++;
             }
             timeBiasedProbMatrix[i] = probtArray;
@@ -293,9 +327,15 @@ public class MyAgent extends AbstractNegotiationParty {
         Bid newBid = new Bid(info_2.getUtilitySpace().getDomain(), issueMap);
 
         // Debug
-        System.out.println("Time-biased prob matrix: " + Arrays.deepToString(timeBiasedProbMatrix));
-        System.out.println("Picked index after roullete: " + Arrays.toString(picked_values_index));
+//        System.out.println("Time-biased prob matrix: " + Arrays.deepToString(timeBiasedProbMatrix));
+//        System.out.println("Picked index after roulette: " + Arrays.toString(picked_values_index));
 
         return newBid;
     }
+    
+    /*public void saveopbids(Bid lastbid){
+    	BidDetails opponentBid = new BidDetails(lastPartnerBid,
+				utilitySpace.getUtility(lastPartnerBid),
+				timeline.getTime());
+    }*/
 }
