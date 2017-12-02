@@ -215,12 +215,11 @@ public class MyAgent extends AbstractNegotiationParty {
         return null;
     }
 
-    // roulette function
     public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, Float time) {
 
         // 1) get number of issues (rows) and values (columns) from the profile variable
         int NumberOfIssues = origProbMatrix.length;
-//        int NumberOfValues = origProbMatrix[0].length;
+        // int NumberOfValues = origProbMatrix[0].length;
         Value[] picked_values_index = new Value[issues.size()];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
@@ -246,7 +245,7 @@ public class MyAgent extends AbstractNegotiationParty {
                 originalValue = origProbMatrix[i][j];
                 normalizedValue = normProbMatrix[i][j];
                 probtArray[j] = normalizedValue;
-//                probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+                // probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
                 j++;
             }
             timeBiasedProbMatrix[i] = probtArray;
