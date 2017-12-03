@@ -38,9 +38,10 @@ public class Agent33 extends AbstractNegotiationParty {
     
     public int power = 2; // power for probability
 
-    public ArrayList<Value> bidmatrix; // matrix for storing opponent's bids
+    public ArrayList<Value> bidlist; // matrix for storing opponent's bids
     public int b = 0; // bid counter
     public int timeflag = 0;
+    public Value[][] bidmatrix; // bid array matrix
     
     @Override
     public void init(NegotiationInfo info) {
@@ -61,7 +62,7 @@ public class Agent33 extends AbstractNegotiationParty {
         probMatrix = new Float[issues.size()][]; // matrix for probability
         prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
 
-        bidmatrix = new ArrayList<Value>();
+        bidlist = new ArrayList<Value>();
         int i = 0;
         
         for (Issue issue : issues) {
@@ -174,28 +175,31 @@ public class Agent33 extends AbstractNegotiationParty {
                 int a = 1;
                 for(@SuppressWarnings("unused") Issue issue : issues) {
                    opvaluearray[a-1] = (Value) valuelist.get(a);
-                   System.out.print("key is: "+ a + " & Value is: ");
-                   System.out.println(valuelist.get(a));
+                   /*System.out.print("key is: "+ a + " & Value is: ");
+                   System.out.println(valuelist.get(a));*/
                    a++;
                 }
-                System.out.println("opvaluearray: " + Arrays.deepToString(opvaluearray));
-                bidmatrix.addAll(Arrays.asList(opvaluearray));
-//                valuematrix.put(b, valuelist);
-//                bidMatrix[b] = lastReceivedOffer;
-//                System.out.println("valuelist: " + valuelist);
+//                System.out.println("opvaluearray: " + Arrays.deepToString(opvaluearray));
+                bidlist.addAll(Arrays.asList(opvaluearray));
             	b++;
-//                System.out.println("valuematrix: " + valuematrix);
 
             	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
         		
         	} else {
         		if (timeflag == 0){
-                    System.out.println("bidmatrix " + bidmatrix);
-                    System.out.println("bidmatrix 90: " + bidmatrix.get(90));
+//                    System.out.println("b " + b);
+        	        Value[][] bidmatrix = new Value[b][];
+                    System.out.println("bidlist " + bidlist);
+                    for (int m = 0; m < b; m++){
+            	        Value[] bidarray = new Value[issues.size()];
+                    	for (int n = 0; n < issues.size(); n++){
+                            bidarray[n] = bidlist.get(n + (issues.size() * m));
+                    	}
+                        bidmatrix[m] = bidarray;
+                    }
+                    System.out.println("bidMatrix: " + Arrays.deepToString(bidmatrix));
         			timeflag = 1;
         		}
-//                System.out.println("Finished collecting bids...");
-//            	System.out.println("bidmatrix: " + bidMatrix);
                 // Accepts the bid on the table in this phase,
                 // if the utility of the bid is higher than Agent's last bid.
             	if (lastReceivedOffer != null
