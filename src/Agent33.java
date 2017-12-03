@@ -14,8 +14,12 @@ import negotiator.utility.AdditiveUtilitySpace;
 import negotiator.utility.EvaluatorDiscrete;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Agent33 returns the bid that maximises its own utility if it is the first to make offer.
@@ -42,6 +46,8 @@ public class Agent33 extends AbstractNegotiationParty {
     public int b = 0; // bid counter
     public int timeflag = 0;
     public Value[][] bidmatrix; // bid array matrix
+    public Double[] valfreq; // value occurrence of opponent issues
+    public String[][] valueNameMatrix;
     
     @Override
     public void init(NegotiationInfo info) {
@@ -81,7 +87,7 @@ public class Agent33 extends AbstractNegotiationParty {
             
             for (ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
 //                System.out.println(valueDiscrete.getValue());
-                NameArray[j] = (String) valueDiscrete.getValue(); // put value names into array
+                NameArray[j] = valueDiscrete.getValue(); // put value names into array
                 
 //                System.out.println("Evaluation(getValue): " + evaluatorDiscrete.getValue(valueDiscrete));
                 try {
@@ -189,7 +195,7 @@ public class Agent33 extends AbstractNegotiationParty {
         		if (timeflag == 0){
 //                    System.out.println("b " + b);
         	        Value[][] bidmatrix = new Value[b][];
-                    System.out.println("bidlist " + bidlist);
+//                    System.out.println("bidlist " + bidlist);
                     for (int m = 0; m < b; m++){
             	        Value[] bidarray = new Value[issues.size()];
                     	for (int n = 0; n < issues.size(); n++){
@@ -197,7 +203,8 @@ public class Agent33 extends AbstractNegotiationParty {
                     	}
                         bidmatrix[m] = bidarray;
                     }
-                    System.out.println("bidMatrix: " + Arrays.deepToString(bidmatrix));
+//                    System.out.println("bidMatrix: " + Arrays.deepToString(bidmatrix));
+                    valfreq = occurrence(bidmatrix);
         			timeflag = 1;
         		}
                 // Accepts the bid on the table in this phase,
@@ -337,9 +344,36 @@ public class Agent33 extends AbstractNegotiationParty {
         return newBid;
     }
     
-    /*public void saveopbids(Bid lastbid){
-    	BidDetails opponentBid = new BidDetails(lastPartnerBid,
-				utilitySpace.getUtility(lastPartnerBid),
-				timeline.getTime());
-    }*/
+    public Double[] occurrence(Value[][] bidmatrix){
+    	Value[][] newbidmatrix = new Value[bidmatrix[0].length][bidmatrix.length];// flip bidmatrix
+        for (int i = 0; i < bidmatrix.length; i++)
+            for (int j = 0; j < bidmatrix[0].length; j++) 
+            	newbidmatrix[j][i] = bidmatrix[i][j];
+//        System.out.println("newbidmatrix: " + Arrays.deepToString(newbidmatrix));
+        
+        Long[] valoccur = new Long[issues.size()];
+    	for (int j = 0; j < issues.size(); j++){
+//	        Value[] issuevalue = new Value[valueNameMatrix[j].length];
+	        
+//            System.out.println("newbidmatrix[j]: " + Arrays.deepToString(newbidmatrix[j]));
+            Map<Object, Long> map = Arrays.stream(newbidmatrix[j])
+            	    .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
+            System.out.println("map: " + map); // occurrence of each value
+
+            Long maxValueInMap = Collections.max(map.values());
+            for (Entry<Object, Long> entry : map.entrySet()) {  // Iterate through hashmap
+                if (entry.getValue()==maxValueInMap) {
+                    System.out.println(entry.getKey());     // Print the value with most occurrence
+                    System.out.println(entry.getValue());
+                    valoccur[j] = entry.getValue();
+                }
+            }
+    	}
+        System.out.println("valfreq: " + Arrays.deepToString(valoccur));
+        Double[] valfreq = new Double[issues.size()];
+        for (int i = 0; i < valoccur.length; i++)
+        	valfreq[i] = (double) valoccur[i]/b;
+        System.out.println("valfreq: " + Arrays.deepToString(valfreq));
+    	return valfreq;
+    }
 }
