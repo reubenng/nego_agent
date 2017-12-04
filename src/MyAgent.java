@@ -215,7 +215,7 @@ public class MyAgent extends AbstractNegotiationParty {
         return null;
     }
 
-    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, double[] agent1FreqMatrix, double[] agent2FreqMatrix, Float time) {
+    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, double[] freqMatrix, Float time) {
 
         // 1) get number of issues (rows) and values (columns) from the profile variable
         int NumberOfIssues = origProbMatrix.length;
@@ -231,16 +231,11 @@ public class MyAgent extends AbstractNegotiationParty {
         }
 
         // 3) Add Preference/Frequency function
-        double[] freqMatrix = new double[NumberOfIssues];
         double[][] prefProbMatrix = new double[NumberOfIssues][NumberOfValues];
         double oldValue;
         double exponent;
         double i_freq;
         double[] valuesSum = new double[NumberOfIssues];
-
-        for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
-            freqMatrix[i_n] = agent1FreqMatrix[i_n] + agent2FreqMatrix[i_n];
-        }
 
         for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
 
