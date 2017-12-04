@@ -55,9 +55,9 @@ public class Agent33 extends AbstractNegotiationParty {
     public double power = 2; // power for probability
 //    public double lastpower = 1.5; // power for probability
     public int timepower = 1;
-    public Float startnegotime = (float) 0.8; // strategy start time
-    public Float worseStartTime = (float) 0.9;
-    public Float worseExpo = (float) 0.70;
+    public Float startnegotime = (float) 0.95; // strategy start time
+    public Float worseStartTime = (float) 0.99;
+    public Float worseExpo = (float) 0.9;
     
     @Override
     public void init(NegotiationInfo info) {
