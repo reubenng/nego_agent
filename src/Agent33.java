@@ -45,12 +45,15 @@ public class Agent33 extends AbstractNegotiationParty {
     
     public int power = 2; // power for probability
 
-    public ArrayList<Value> bidlist; // matrix for storing opponent1's bids
+    public ArrayList<Value> bidlist1; // matrix for storing opponent1's bids
     public ArrayList<Value> bidlist2; // matrix for storing opponent2's bids
-    public int b = 0; // bid counter
+    public int b1 = 0; // bid counter oppo1
+    public int b2 = 0; // bid counter oppo2
     public int timeflag = 0;
-    public Value[][] bidmatrix; // bid array matrix
-    public Double[] valfreq; // value occurrence of opponent issues
+    public Value[][] bidmatrix1; // bid array matrix
+    public Value[][] bidmatrix2; // bid array matrix
+    public Double[] valfreq1; // value occurrence of opponent issues
+    public Double[] valfreq2; // value occurrence of opponent issues
     public String[][] valueNameMatrix;
     
     @Override
@@ -72,7 +75,8 @@ public class Agent33 extends AbstractNegotiationParty {
         probMatrix = new Float[issues.size()][]; // matrix for probability
         prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
 
-        bidlist = new ArrayList<Value>();
+        bidlist1 = new ArrayList<Value>();
+        bidlist2 = new ArrayList<Value>();
         int i = 0;
         
         for (Issue issue : issues) {
@@ -190,25 +194,39 @@ public class Agent33 extends AbstractNegotiationParty {
                    a++;
                 }
 //                System.out.println("opvaluearray: " + Arrays.deepToString(opvaluearray));
-                bidlist.addAll(Arrays.asList(opvaluearray));
-            	b++;
-
+                if (senders[0] == lastsender){
+                	bidlist1.addAll(Arrays.asList(opvaluearray));
+                	b1++;
+                }
+                else if (senders[1] == lastsender){
+                	bidlist2.addAll(Arrays.asList(opvaluearray));
+                	b2++;
+                }
             	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
         		
         	} else {
         		if (timeflag == 0){
 //                    System.out.println("b " + b);
-        	        Value[][] bidmatrix = new Value[b][];
-//                    System.out.println("bidlist " + bidlist);
-                    for (int m = 0; m < b; m++){
+        	        Value[][] bidmatrix1 = new Value[b1][];
+                    System.out.println("bidlist1 " + bidlist1);
+                    for (int m = 0; m < b1; m++){
             	        Value[] bidarray = new Value[issues.size()];
-                    	for (int n = 0; n < issues.size(); n++){
-                            bidarray[n] = bidlist.get(n + (issues.size() * m));
-                    	}
-                        bidmatrix[m] = bidarray;
+                    	for (int n = 0; n < issues.size(); n++)
+                            bidarray[n] = bidlist1.get(n + (issues.size() * m));
+                        bidmatrix1[m] = bidarray;
                     }
-//                    System.out.println("bidMatrix: " + Arrays.deepToString(bidmatrix));
-                    valfreq = occurrence(bidmatrix);
+        	        Value[][] bidmatrix2 = new Value[b2][];
+        	        System.out.println("bidlist2 " + bidlist2);
+	                  for (int m = 0; m < b2; m++){
+	          	        Value[] bidarray = new Value[issues.size()];
+	                  	for (int n = 0; n < issues.size(); n++)
+	                          bidarray[n] = bidlist2.get(n + (issues.size() * m));
+	                      bidmatrix2[m] = bidarray;
+	                  }
+                    System.out.println("bidMatrix1: " + Arrays.deepToString(bidmatrix1));
+                    System.out.println("bidMatrix2: " + Arrays.deepToString(bidmatrix2));
+                    valfreq1 = occurrence(bidmatrix1, b1);
+                    valfreq2 = occurrence(bidmatrix2, b2);
         			timeflag = 1;
         		}
                 // Accepts the bid on the table in this phase,
@@ -243,18 +261,18 @@ public class Agent33 extends AbstractNegotiationParty {
 
             if (lastsender != null)
             	previoussender = lastsender;
-            System.out.println("previoussender: " + previoussender);
+//            System.out.println("previoussender: " + previoussender);
             // storing last received offer
             lastReceivedOffer = offer.getBid();
 
-          System.out.println("sender: " + sender);
+//          System.out.println("sender: " + sender);
             if (!Arrays.asList(senders).contains(sender) && senders[0] == null){ // (senders[0] != sender) && (senders[1] != sender)
             	senders[0] = sender;
             } else if (!(Arrays.asList(senders).contains(sender)) && senders[0] != null){ // senders[1] != sender
             	senders[1] = sender;
 	        }
 
-//            System.out.println("senders: " + Arrays.deepToString(senders));
+            System.out.println("senders: " + Arrays.deepToString(senders));
             lastsender = sender;
         }
     }
@@ -361,18 +379,16 @@ public class Agent33 extends AbstractNegotiationParty {
         return newBid;
     }
     
-    public Double[] occurrence(Value[][] bidmatrix){
+    public Double[] occurrence(Value[][] bidmatrix, int b){
     	Value[][] newbidmatrix = new Value[bidmatrix[0].length][bidmatrix.length];// flip bidmatrix
         for (int i = 0; i < bidmatrix.length; i++)
             for (int j = 0; j < bidmatrix[0].length; j++) 
             	newbidmatrix[j][i] = bidmatrix[i][j];
-//        System.out.println("newbidmatrix: " + Arrays.deepToString(newbidmatrix));
+        System.out.println("newbidmatrix: " + Arrays.deepToString(newbidmatrix));
         
         Long[] valoccur = new Long[issues.size()];
     	for (int j = 0; j < issues.size(); j++){
-//	        Value[] issuevalue = new Value[valueNameMatrix[j].length];
-	        
-//            System.out.println("newbidmatrix[j]: " + Arrays.deepToString(newbidmatrix[j]));
+            System.out.println("newbidmatrix[j]: " + Arrays.deepToString(newbidmatrix[j]));
             Map<Object, Long> map = Arrays.stream(newbidmatrix[j])
             	    .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
             System.out.println("map: " + map); // occurrence of each value
