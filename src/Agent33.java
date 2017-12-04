@@ -33,6 +33,9 @@ public class Agent33 extends AbstractNegotiationParty {
     private int round = 0; // number of round
     private Bid lastReceivedOffer = null; // offer on the table
     private Bid myLastOffer = null;
+    private AgentID lastsender;
+    private AgentID previoussender;
+    private AgentID[] senders = new AgentID[2];
     
     public Float[][] probMatrix; // probability matrix
     public Float[][] prob2Matrix; // normalised squared probability matrix
@@ -42,7 +45,8 @@ public class Agent33 extends AbstractNegotiationParty {
     
     public int power = 2; // power for probability
 
-    public ArrayList<Value> bidlist; // matrix for storing opponent's bids
+    public ArrayList<Value> bidlist; // matrix for storing opponent1's bids
+    public ArrayList<Value> bidlist2; // matrix for storing opponent2's bids
     public int b = 0; // bid counter
     public int timeflag = 0;
     public Value[][] bidmatrix; // bid array matrix
@@ -237,8 +241,21 @@ public class Agent33 extends AbstractNegotiationParty {
         if (act instanceof Offer) { // sender is making an offer
             Offer offer = (Offer) act;
 
+            if (lastsender != null)
+            	previoussender = lastsender;
+            System.out.println("previoussender: " + previoussender);
             // storing last received offer
             lastReceivedOffer = offer.getBid();
+
+          System.out.println("sender: " + sender);
+            if (!Arrays.asList(senders).contains(sender) && senders[0] == null){ // (senders[0] != sender) && (senders[1] != sender)
+            	senders[0] = sender;
+            } else if (!(Arrays.asList(senders).contains(sender)) && senders[0] != null){ // senders[1] != sender
+            	senders[1] = sender;
+	        }
+
+//            System.out.println("senders: " + Arrays.deepToString(senders));
+            lastsender = sender;
         }
     }
 
