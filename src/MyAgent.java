@@ -215,11 +215,11 @@ public class MyAgent extends AbstractNegotiationParty {
         return null;
     }
 
-    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, Float time) {
+    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, double[] agent1FreqMatrix, double[] agent2FreqMatrix, Float time) {
 
         // 1) get number of issues (rows) and values (columns) from the profile variable
         int NumberOfIssues = origProbMatrix.length;
-        // int NumberOfValues = origProbMatrix[0].length;
+        int NumberOfValues = origProbMatrix[0].length;
         Value[] picked_values_index = new Value[issues.size()];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
@@ -229,8 +229,42 @@ public class MyAgent extends AbstractNegotiationParty {
         for(int issue_n = 0; issue_n < NumberOfIssues; issue_n++) {
             randomArray[issue_n] = Math.random();
         }
+
+        // 3) Add Preference/Frequency function
+        double[] freqMatrix = new double[NumberOfIssues];
+        double[][] prefProbMatrix = new double[NumberOfIssues][NumberOfValues];
+        double oldValue;
+        double exponent;
+        double i_freq;
+        double[] valuesSum = new double[NumberOfIssues];
+
+        for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
+            freqMatrix[i_n] = agent1FreqMatrix[i_n] + agent2FreqMatrix[i_n];
+        }
+
+        for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
+
+            i_freq = freqMatrix[i_n];
+
+            // change every value prob accordingly
+            for(int v_n = 0; v_n < NumberOfValues; v_n++) {
+                oldValue = normProbMatrix[i_n][v_n];
+                exponent = 0.5 + (1 - i_freq);
+                prefProbMatrix[i_n][v_n] =  Math.pow(oldValue, exponent);
+
+                valuesSum[i_n] += prefProbMatrix[i_n][v_n];
+            }
+        }
+
+        // normalize and return
+        for(int i_n = 0 ; i_n < NumberOfIssues; i_n++) {
+            // change every value prob accordingly
+            for(int v_n = 0; v_n < NumberOfValues; v_n++) {
+                prefProbMatrix[i_n][v_n] = prefProbMatrix[i_n][v_n] / valuesSum[i_n];
+            }
+        }
         
-        // 3) apply time dependent function
+        // 4) apply time dependent function
         Float[][] timeBiasedProbMatrix = new Float[issues.size()][];
         
         float originalValue;
@@ -242,17 +276,19 @@ public class MyAgent extends AbstractNegotiationParty {
             IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
             Float[] probtArray = new Float[issueDiscrete.getValues().size()]; // array of probability * t
             for(@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
-                originalValue = origProbMatrix[i][j];
+                // originalValue = origProbMatrix[i][j];
                 normalizedValue = normProbMatrix[i][j];
-                probtArray[j] = normalizedValue;
+                prefValue = prefProbMatrix[i][j];
+                // probtArray[j] = normalizedValue;
                 // probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+                probtArray[j] = (normalizedValue * time * time) - (prefValue * (time * time - 1));
                 j++;
             }
             timeBiasedProbMatrix[i] = probtArray;
             i++;
         }
         
-        // 4) apply roulette selection
+        // 5) apply roulette selection
         i = 0;
         for(Issue issue : issues) {
 
@@ -278,7 +314,7 @@ public class MyAgent extends AbstractNegotiationParty {
             i++;
         }
 
-        // 5) Generate new bid with chosen values
+        // 6) Generate new bid with chosen values
         HashMap<Integer, Value> issueMap = new HashMap<>();
         int issue_n = 0;
         for (Issue issue : issues) {

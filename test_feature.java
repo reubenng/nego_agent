@@ -4,7 +4,6 @@ public class test_feature {
         public static void main(String[] args) {
 
             // Inputs (double[][] normProbMatrix, double[] agent1FreqMatrix, double[] agent2FreqMatrix, double time)
-            int lastOfferAgent = 2;
             
             double[][] normProbMatrix = new double[][]{
                 { 0.1, 0.3, 0.6 },
@@ -29,17 +28,21 @@ public class test_feature {
 
             double[] valuesSum = new double[NumberOfIssues];
 
-            // if last offer is from Agent 1 
-            if (lastOfferAgent == 1) {
-                freqMatrix = agent2FreqMatrix;
+            // // if last offer is from Agent 1 
+            // if (lastOfferAgent == 1) {
+            //     freqMatrix = agent2FreqMatrix;
             
-            // if last offer is from Agent 2
-            } else {
-                freqMatrix = agent1FreqMatrix;
+            // // if last offer is from Agent 2
+            // } else {
+            //     freqMatrix = agent1FreqMatrix;
+            // }
+
+            for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
+                freqMatrix[i_n] = agent1FreqMatrix[i_n] + agent2FreqMatrix[i_n];
             }
 
             // create a bid that is closer to what Agent 2 wants
-            for(int i_n = 0 ; i_n < NumberOfIssues; i_n++) {
+            for(int i_n = 0; i_n < NumberOfIssues; i_n++) {
 
                 i_freq = freqMatrix[i_n];
 
@@ -62,6 +65,7 @@ public class test_feature {
             }
 
             System.out.println("NormProbArray" + Arrays.deepToString(normProbMatrix));
+            System.out.println("Freq Matrix" + Arrays.toString(freqMatrix));
             System.out.println("PrefProbArray" + Arrays.deepToString(prefProbMatrix));
         }
     
