@@ -42,19 +42,21 @@ public class Agent33 extends AbstractNegotiationParty {
     public List<Issue> issues;
     public IssueDiscrete issueDiscrete;
     public NegotiationInfo info_2;   
-    
-    public int power = 2; // power for probability
 
-    public ArrayList<Value> bidlist1; // matrix for storing opponent1's bids
+    public ArrayList<Value> bidlist; // matrix for storing opponent1's bids
     public ArrayList<Value> bidlist2; // matrix for storing opponent2's bids
-    public int b1 = 0; // bid counter oppo1
-    public int b2 = 0; // bid counter oppo2
+    public int b = 0; // bid counter
     public int timeflag = 0;
-    public Value[][] bidmatrix1; // bid array matrix
-    public Value[][] bidmatrix2; // bid array matrix
-    public Double[] valfreq1; // value occurrence of opponent issues
-    public Double[] valfreq2; // value occurrence of opponent issues
+    public Value[][] bidmatrix; // bid array matrix
+    public Float[] valfreq; // value occurrence of opponent issues
     public String[][] valueNameMatrix;
+    
+    // parameters
+    public double power = 2; // power for probability
+    public double lastpower = 1.5; // power for probability
+    public int timepower = 1;
+    public Float startnegotime = (float) 0.9; // strategy start time
+    public Float worseStartTime = (float) 0.95;
     
     @Override
     public void init(NegotiationInfo info) {
@@ -75,8 +77,7 @@ public class Agent33 extends AbstractNegotiationParty {
         probMatrix = new Float[issues.size()][]; // matrix for probability
         prob2Matrix = new Float[issues.size()][]; // matrix for normalised squared probability
 
-        bidlist1 = new ArrayList<Value>();
-        bidlist2 = new ArrayList<Value>();
+        bidlist = new ArrayList<Value>();
         int i = 0;
         
         for (Issue issue : issues) {
@@ -182,7 +183,7 @@ public class Agent33 extends AbstractNegotiationParty {
         	System.out.println("First offer");
         	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
         } else {
-        	if (time < 0.5){ // bid collection phase
+        	if (time < startnegotime){ // bid collection phase
         	    HashMap<Integer, Value> valuelist = lastReceivedOffer.getValues();
                 Value[] opvaluearray = new Value[issues.size()];
                 // turn bid into array
@@ -194,39 +195,25 @@ public class Agent33 extends AbstractNegotiationParty {
                    a++;
                 }
 //                System.out.println("opvaluearray: " + Arrays.deepToString(opvaluearray));
-                if (senders[0] == lastsender){
-                	bidlist1.addAll(Arrays.asList(opvaluearray));
-                	b1++;
-                }
-                else if (senders[1] == lastsender){
-                	bidlist2.addAll(Arrays.asList(opvaluearray));
-                	b2++;
-                }
+                bidlist.addAll(Arrays.asList(opvaluearray));
+            	b++;
+
             	return new Offer(this.getPartyId(), this.getMaxUtilityBid());
         		
         	} else {
         		if (timeflag == 0){
 //                    System.out.println("b " + b);
-        	        Value[][] bidmatrix1 = new Value[b1][];
-                    System.out.println("bidlist1 " + bidlist1);
-                    for (int m = 0; m < b1; m++){
+        	        Value[][] bidmatrix = new Value[b][];
+//                    System.out.println("bidlist " + bidlist);
+                    for (int m = 0; m < b; m++){
             	        Value[] bidarray = new Value[issues.size()];
-                    	for (int n = 0; n < issues.size(); n++)
-                            bidarray[n] = bidlist1.get(n + (issues.size() * m));
-                        bidmatrix1[m] = bidarray;
+                    	for (int n = 0; n < issues.size(); n++){
+                            bidarray[n] = bidlist.get(n + (issues.size() * m));
+                    	}
+                        bidmatrix[m] = bidarray;
                     }
-        	        Value[][] bidmatrix2 = new Value[b2][];
-        	        System.out.println("bidlist2 " + bidlist2);
-	                  for (int m = 0; m < b2; m++){
-	          	        Value[] bidarray = new Value[issues.size()];
-	                  	for (int n = 0; n < issues.size(); n++)
-	                          bidarray[n] = bidlist2.get(n + (issues.size() * m));
-	                      bidmatrix2[m] = bidarray;
-	                  }
-                    System.out.println("bidMatrix1: " + Arrays.deepToString(bidmatrix1));
-                    System.out.println("bidMatrix2: " + Arrays.deepToString(bidmatrix2));
-                    valfreq1 = occurrence(bidmatrix1, b1);
-                    valfreq2 = occurrence(bidmatrix2, b2);
+//                    System.out.println("bidMatrix: " + Arrays.deepToString(bidmatrix));
+                    valfreq = occurrence(bidmatrix);
         			timeflag = 1;
         		}
                 // Accepts the bid on the table in this phase,
@@ -239,7 +226,7 @@ public class Agent33 extends AbstractNegotiationParty {
             	} else {
                 	// otherwise do strategy counter offer
             		System.out.println("Make offer");
-                    myLastOffer = getBidFromRoulette(probMatrix, prob2Matrix, time);
+                    myLastOffer = getBidFromRoulette(probMatrix, prob2Matrix, valfreq, time);
 //                    myLastOffer = generateRandomBid();
                     return new Offer(this.getPartyId(), myLastOffer);
             	}
@@ -272,7 +259,7 @@ public class Agent33 extends AbstractNegotiationParty {
             	senders[1] = sender;
 	        }
 
-            System.out.println("senders: " + Arrays.deepToString(senders));
+//            System.out.println("senders: " + Arrays.deepToString(senders));
             lastsender = sender;
         }
     }
@@ -296,7 +283,7 @@ public class Agent33 extends AbstractNegotiationParty {
     }
 
     // roulette function
-    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, Float time) {
+    public Bid getBidFromRoulette(Float[][] origProbMatrix, Float[][] normProbMatrix, Float[] valfreq2, Float time) {
 
         // 1) get number of issues (rows) and values (columns) from the profile variable
         int NumberOfIssues = origProbMatrix.length;
@@ -304,18 +291,79 @@ public class Agent33 extends AbstractNegotiationParty {
         Value[] picked_values_index = new Value[issues.size()];
 
         // 2) create vector (size=NumberOfIssues) of random numbers from 0 to 1
-        Double[] randomArray = new Double[NumberOfIssues];
-        double offset = 0;
+        Float[] randomArray = new Float[NumberOfIssues];
+        Float offset = (float) 0.0;
         
         for(int issue_n = 0; issue_n < NumberOfIssues; issue_n++) {
-            randomArray[issue_n] = Math.random();
+            randomArray[issue_n] = (float) Math.random();
         }
-        
-        // 3) apply time dependent function
+
+        // 3) Add Preference/Frequency function
+        Float[][] prefProbMatrix = new Float[NumberOfIssues][];
+        Float[][] worsePrefProbMatrix = new Float[NumberOfIssues][];
+        Float oldValue;
+        Float exponent;
+        Float i_freq;
+        Float[] valuesSum = new Float[NumberOfIssues];
+        Float[] worseValuesSum = new Float[NumberOfIssues];
+
+        int i_n = 0;
+        for( Issue issue : issues) {
+            i_freq = valfreq2[i_n];
+
+            int v_n = 0;
+            // change every value prob accordingly
+            IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
+            Float[] prefProbArray = new Float[issueDiscrete.getValues().size()];
+            Float[] worsePrefProbArray  = new Float[issueDiscrete.getValues().size()];
+            for(@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
+                oldValue = normProbMatrix[i_n][v_n];
+                exponent = (float) (0.5 + (1 - i_freq));
+                prefProbArray[v_n] = (float) Math.pow(oldValue, exponent);
+                worsePrefProbArray[v_n] = (float) Math.pow(prefProbArray[v_n], 0.5);
+                v_n++;
+            }
+
+            for(int sum_i = 0; sum_i < issueDiscrete.getValues().size(); sum_i++) {
+                if (valuesSum[i_n] == null) {
+                	valuesSum[i_n] = prefProbArray[sum_i];
+                	 worseValuesSum[i_n] = worsePrefProbArray[sum_i];
+                } else {
+                	valuesSum[i_n] = valuesSum[i_n] + prefProbArray[sum_i];
+                	worseValuesSum[i_n] = worseValuesSum[i_n] + worsePrefProbArray[sum_i];
+                }
+            }
+
+            prefProbMatrix[i_n] = prefProbArray;
+            worsePrefProbMatrix[i_n] = worsePrefProbArray;
+            i_n++;
+        }
+
+        // normalize and return
+        i_n = 0 ;
+        for( Issue issue : issues) {
+            // change every value prob accordingly
+        	int v_n = 0;
+            IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
+            Float[] prefProbArray = new Float[issueDiscrete.getValues().size()];
+            Float[] worsePrefProbArray = new Float[issueDiscrete.getValues().size()];
+            for( @SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
+            	prefProbArray[v_n] = (float) (prefProbMatrix[i_n][v_n] / valuesSum[i_n]);
+            	worsePrefProbArray[v_n] = (float) (worsePrefProbMatrix[i_n][v_n] / worseValuesSum[i_n]);
+                v_n++;
+            }
+            prefProbMatrix[i_n] = prefProbArray;
+            worsePrefProbMatrix[i_n] = worsePrefProbArray;
+            i_n++;
+        }
+
+        // 4) apply time dependent function
         Float[][] timeBiasedProbMatrix = new Float[issues.size()][];
         
-        float originalValue;
+//        float originalValue;
         float normalizedValue;
+        Float prefValue;
+        Float worsePrefValue;
 
         int i = 0;
         for(Issue issue : issues) {
@@ -323,17 +371,30 @@ public class Agent33 extends AbstractNegotiationParty {
             IssueDiscrete issueDiscrete = (IssueDiscrete) issue;
             Float[] probtArray = new Float[issueDiscrete.getValues().size()]; // array of probability * t
             for(@SuppressWarnings("unused") ValueDiscrete valueDiscrete : issueDiscrete.getValues()) {
-                originalValue = origProbMatrix[i][j];
+                // originalValue = origProbMatrix[i][j];
                 normalizedValue = normProbMatrix[i][j];
-//                probtArray[j] = normalizedValue;
-                probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+                prefValue = (Float) prefProbMatrix[i][j];
+                worsePrefValue = (Float) worsePrefProbMatrix[i][j];
+
+                // probtArray[j] = normalizedValue;
+                // probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
+                
+                
+                // if we are in the last couple of 0.05 time
+                if (time < worseStartTime) {
+                	probtArray[j] = (float) ((prefValue * Math.pow((time-startnegotime)/(1-startnegotime), timepower) ) - (normalizedValue * (Math.pow((time-startnegotime)/(1-startnegotime), timepower) - 1)));
+
+                } else {
+                	probtArray[j] = (float) ((worsePrefValue * Math.pow((time-worseStartTime)/(1-worseStartTime), timepower) ) - (prefValue * (Math.pow((time-worseStartTime)/(1-worseStartTime), timepower) - 1)));
+
+                }
                 j++;
             }
             timeBiasedProbMatrix[i] = probtArray;
             i++;
         }
         
-        // 4) apply roulette selection
+        // 5) apply roulette selection
         i = 0;
         for(Issue issue : issues) {
 
@@ -359,7 +420,7 @@ public class Agent33 extends AbstractNegotiationParty {
             i++;
         }
 
-        // 5) Generate new bid with chosen values
+        // 6) Generate new bid with chosen values
         HashMap<Integer, Value> issueMap = new HashMap<>();
         int issue_n = 0;
         for (Issue issue : issues) {
@@ -373,22 +434,25 @@ public class Agent33 extends AbstractNegotiationParty {
         Bid newBid = new Bid(info_2.getUtilitySpace().getDomain(), issueMap);
 
         // Debug
-//        System.out.println("Time-biased prob matrix: " + Arrays.deepToString(timeBiasedProbMatrix));
-//        System.out.println("Picked index after roulette: " + Arrays.toString(picked_values_index));
+        System.out.println("Time-biased prob matrix: " + Arrays.deepToString(timeBiasedProbMatrix));
+        System.out.println("Picked index after roullete: " + Arrays.toString(picked_values_index));
 
         return newBid;
     }
     
-    public Double[] occurrence(Value[][] bidmatrix, int b){
+    
+    public Float[] occurrence(Value[][] bidmatrix){
     	Value[][] newbidmatrix = new Value[bidmatrix[0].length][bidmatrix.length];// flip bidmatrix
         for (int i = 0; i < bidmatrix.length; i++)
             for (int j = 0; j < bidmatrix[0].length; j++) 
             	newbidmatrix[j][i] = bidmatrix[i][j];
-        System.out.println("newbidmatrix: " + Arrays.deepToString(newbidmatrix));
+//        System.out.println("newbidmatrix: " + Arrays.deepToString(newbidmatrix));
         
         Long[] valoccur = new Long[issues.size()];
     	for (int j = 0; j < issues.size(); j++){
-            System.out.println("newbidmatrix[j]: " + Arrays.deepToString(newbidmatrix[j]));
+//	        Value[] issuevalue = new Value[valueNameMatrix[j].length];
+	        
+//            System.out.println("newbidmatrix[j]: " + Arrays.deepToString(newbidmatrix[j]));
             Map<Object, Long> map = Arrays.stream(newbidmatrix[j])
             	    .collect(Collectors.groupingBy(s -> s, Collectors.counting()));
             System.out.println("map: " + map); // occurrence of each value
@@ -403,9 +467,9 @@ public class Agent33 extends AbstractNegotiationParty {
             }
     	}
         System.out.println("valfreq: " + Arrays.deepToString(valoccur));
-        Double[] valfreq = new Double[issues.size()];
+        Float[] valfreq = new Float[issues.size()];
         for (int i = 0; i < valoccur.length; i++)
-        	valfreq[i] = (double) valoccur[i]/b;
+        	valfreq[i] = (float) valoccur[i]/b;
         System.out.println("valfreq: " + Arrays.deepToString(valfreq));
     	return valfreq;
     }
