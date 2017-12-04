@@ -263,7 +263,7 @@ public class MyAgent extends AbstractNegotiationParty {
                 prefProbMatrix[i_n][v_n] = prefProbMatrix[i_n][v_n] / valuesSum[i_n];
             }
         }
-        
+
         // 4) apply time dependent function
         Float[][] timeBiasedProbMatrix = new Float[issues.size()][];
         
@@ -281,7 +281,7 @@ public class MyAgent extends AbstractNegotiationParty {
                 prefValue = prefProbMatrix[i][j];
                 // probtArray[j] = normalizedValue;
                 // probtArray[j] = (originalValue * time * time) - (normalizedValue * (time * time - 1));
-                probtArray[j] = (normalizedValue * time * time) - (prefValue * (time * time - 1));
+                probtArray[j] = (prefValue * time * time) - (normalizedValue * (time * time - 1));
                 j++;
             }
             timeBiasedProbMatrix[i] = probtArray;
