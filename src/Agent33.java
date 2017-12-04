@@ -1,3 +1,5 @@
+package group33;
+
 import negotiator.AgentID;
 import negotiator.Bid;
 import negotiator.actions.Accept;
@@ -21,11 +23,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-/**
- * Agent33 returns the bid that maximises its own utility if it is the first to make offer.
- * In the second half, it offers a random bid. It only accepts the bid on the table in this phase,
- * if the utility of the bid is higher than Example Agent's last bid.
- */
 @SuppressWarnings("serial")
 public class Agent33 extends AbstractNegotiationParty {
     private final String description = "Group 33 Agent";
@@ -55,9 +52,9 @@ public class Agent33 extends AbstractNegotiationParty {
     public double power = 2; // power for probability
 //    public double lastpower = 1.5; // power for probability
     public int timepower = 1;
-    public Float startnegotime = (float) 0.95; // strategy start time
-    public Float worseStartTime = (float) 0.99;
-    public Float worseExpo = (float) 0.9;
+    public Float startnegotime = (float) 0.9; // strategy start time
+    public Float worseStartTime = (float) 0.95;
+    public Float worseExpo = (float) 0.8;
     
     @Override
     public void init(NegotiationInfo info) {
