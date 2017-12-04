@@ -250,7 +250,7 @@ public class MyAgent extends AbstractNegotiationParty {
             for(int v_n = 0; v_n < NumberOfValues; v_n++) {
                 oldValue = normProbMatrix[i_n][v_n];
                 exponent = 0.5 + (1 - i_freq);
-                prefProbMatrix[i_n][v_n] =  Math.pow(oldValue, exponent);
+                prefProbMatrix[i_n][v_n] = Math.pow(oldValue, exponent);
 
                 valuesSum[i_n] += prefProbMatrix[i_n][v_n];
             }
