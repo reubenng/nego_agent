@@ -3,8 +3,6 @@
 
 Building a negotiation agent for the Automated Negotiation Agent Competition (ANAC) using the GENIUS (General Environment for Negotiation with Intelligent Multi-Purpose Usage Simulation) framework.
 
-# Tasks [COMPLETED]
-
 ## Milestones
 
 1) 27 Monday Evening -> Basic Model [COMPLETED]
